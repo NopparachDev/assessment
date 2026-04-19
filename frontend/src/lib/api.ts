@@ -45,4 +45,18 @@ export const api = {
   exportForm: (id: string) => request<Record<string, unknown>>(`/api/forms/${id}/export`),
   importForm: (data: { title: string; department?: string; schema: Record<string, unknown> }) =>
     request<FormData>("/api/forms/import", { method: "POST", body: JSON.stringify(data) }),
+
+  generateFormFromImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/api/ai/generate-form`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(error.detail || res.statusText);
+    }
+    return res.json() as Promise<{ widgets: Record<string, unknown>[] }>;
+  },
 };
