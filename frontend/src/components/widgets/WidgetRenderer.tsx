@@ -9,6 +9,9 @@ import { CheckboxGroupWidget } from "./CheckboxGroupWidget";
 import { ScoreSliderWidget } from "./ScoreSliderWidget";
 import { DatePickerWidget } from "./DatePickerWidget";
 import { LabelWidget } from "./LabelWidget";
+import { ScoringTableWidget } from "./ScoringTableWidget";
+import { PatientInfoWidget } from "./PatientInfoWidget";
+import { ScoreSummaryWidget } from "./ScoreSummaryWidget";
 
 const WIDGET_MAP: Record<WidgetType, React.ComponentType<{ props: WidgetProps; interactive?: boolean }>> = {
   TextInput: TextInputWidget,
@@ -19,6 +22,9 @@ const WIDGET_MAP: Record<WidgetType, React.ComponentType<{ props: WidgetProps; i
   ScoreSlider: ScoreSliderWidget,
   DatePicker: DatePickerWidget,
   Label: LabelWidget,
+  ScoringTable: ScoringTableWidget,
+  PatientInfo: PatientInfoWidget,
+  ScoreSummary: ScoreSummaryWidget,
 };
 
 export function WidgetRenderer({

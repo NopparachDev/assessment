@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
-import type { FormSchema, Row, Widget, WidgetType, WidgetProps } from "./types";
-import { WIDGET_DEFAULTS as defaults } from "./types";
+import type { FormSchema, Widget, WidgetType, WidgetProps } from "./types";
+import { WIDGET_DEFAULTS as defaults, WIDGET_SIZE_DEFAULTS as sizes } from "./types";
 
 interface HistoryEntry {
   layout: FormSchema["layout"];
@@ -13,6 +13,8 @@ interface FormBuilderState {
   previewMode: boolean;
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
+  zoom: number;
+  gridSnap: number;
 
   // Actions
   setForm: (form: FormSchema) => void;
@@ -21,32 +23,36 @@ interface FormBuilderState {
   setTags: (tags: string[]) => void;
   selectWidget: (id: string | null) => void;
   togglePreview: () => void;
+  setZoom: (zoom: number) => void;
+  setGridSnap: (snap: number) => void;
 
   // Widget operations
-  addWidget: (type: WidgetType, rowIndex?: number) => void;
+  addWidget: (type: WidgetType, x?: number, y?: number) => void;
   removeWidget: (widgetId: string) => void;
   updateWidgetProps: (widgetId: string, props: Partial<WidgetProps>) => void;
-  updateWidgetLayout: (widgetId: string, colSpan: number) => void;
-  moveWidget: (activeId: string, overId: string) => void;
-
-  // Row operations
-  addRow: (index?: number) => void;
-  removeRow: (rowId: string) => void;
-  moveRow: (fromIndex: number, toIndex: number) => void;
+  moveWidget: (widgetId: string, x: number, y: number) => void;
+  resizeWidget: (widgetId: string, w: number, h: number) => void;
+  duplicateWidget: (widgetId: string) => void;
 
   // History
   undo: () => void;
   redo: () => void;
 
+  // Canvas
+  setCanvasSize: (width: number, height: number) => void;
+
   // Reset
   resetForm: () => void;
 }
+
+const CANVAS_WIDTH = 794; // A4 at 96 DPI
+const CANVAS_HEIGHT = 1123;
 
 const createEmptyForm = (): FormSchema => ({
   title: "Untitled Form",
   department: "",
   version: 1,
-  layout: { columns: 12, rows: [] },
+  layout: { canvasWidth: CANVAS_WIDTH, canvasHeight: CANVAS_HEIGHT, widgets: [] },
 });
 
 function pushHistory(state: FormBuilderState): { undoStack: HistoryEntry[]; redoStack: HistoryEntry[] } {
@@ -56,12 +62,19 @@ function pushHistory(state: FormBuilderState): { undoStack: HistoryEntry[]; redo
   };
 }
 
+function snapToGrid(value: number, grid: number): number {
+  if (grid <= 1) return Math.round(value);
+  return Math.round(value / grid) * grid;
+}
+
 export const useFormStore = create<FormBuilderState>((set) => ({
   form: createEmptyForm(),
   selectedWidgetId: null,
   previewMode: false,
   undoStack: [],
   redoStack: [],
+  zoom: 1,
+  gridSnap: 10,
 
   setForm: (form) => set({ form, undoStack: [], redoStack: [], selectedWidgetId: null }),
 
@@ -78,30 +91,46 @@ export const useFormStore = create<FormBuilderState>((set) => ({
 
   togglePreview: () => set((s) => ({ previewMode: !s.previewMode, selectedWidgetId: null })),
 
-  addWidget: (type, rowIndex) =>
+  setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(2, zoom)) }),
+
+  setGridSnap: (snap) => set({ gridSnap: snap }),
+
+  addWidget: (type, x, y) =>
     set((s) => {
       const history = pushHistory(s);
+      const size = sizes[type];
+      const snap = s.gridSnap;
+
+      // Find a good position — default to center-ish or provided coords
+      const posX = x !== undefined ? snapToGrid(x, snap) : snapToGrid(40, snap);
+      const posY = y !== undefined
+        ? snapToGrid(y, snap)
+        : snapToGrid(
+            s.form.layout.widgets.length > 0
+              ? Math.max(...s.form.layout.widgets.map((w) => w.y + w.h)) + 10
+              : 40,
+            snap
+          );
+
       const widget: Widget = {
         id: uuidv4(),
         type,
-        col_start: 1,
-        col_span: 12,
+        x: posX,
+        y: posY,
+        w: size.w,
+        h: size.h,
         props: { ...defaults[type] } as WidgetProps,
       };
 
-      const newRows = [...s.form.layout.rows];
-      if (rowIndex !== undefined && rowIndex < newRows.length) {
-        newRows[rowIndex] = {
-          ...newRows[rowIndex],
-          widgets: [...newRows[rowIndex].widgets, widget],
-        };
-      } else {
-        newRows.push({ id: uuidv4(), widgets: [widget] });
-      }
-
       return {
         ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
+        form: {
+          ...s.form,
+          layout: {
+            ...s.form.layout,
+            widgets: [...s.form.layout.widgets, widget],
+          },
+        },
         selectedWidgetId: widget.id,
       };
     }),
@@ -109,16 +138,15 @@ export const useFormStore = create<FormBuilderState>((set) => ({
   removeWidget: (widgetId) =>
     set((s) => {
       const history = pushHistory(s);
-      const newRows = s.form.layout.rows
-        .map((row) => ({
-          ...row,
-          widgets: row.widgets.filter((w) => w.id !== widgetId),
-        }))
-        .filter((row) => row.widgets.length > 0);
-
       return {
         ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
+        form: {
+          ...s.form,
+          layout: {
+            ...s.form.layout,
+            widgets: s.form.layout.widgets.filter((w) => w.id !== widgetId),
+          },
+        },
         selectedWidgetId: s.selectedWidgetId === widgetId ? null : s.selectedWidgetId,
       };
     }),
@@ -126,135 +154,79 @@ export const useFormStore = create<FormBuilderState>((set) => ({
   updateWidgetProps: (widgetId, props) =>
     set((s) => {
       const history = pushHistory(s);
-      const newRows = s.form.layout.rows.map((row) => ({
-        ...row,
-        widgets: row.widgets.map((w) =>
-          w.id === widgetId ? { ...w, props: { ...w.props, ...props } } : w
-        ),
-      }));
-      return {
-        ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
-      };
-    }),
-
-  updateWidgetLayout: (widgetId, colSpan) =>
-    set((s) => {
-      const history = pushHistory(s);
-      const newRows = s.form.layout.rows.map((row) => ({
-        ...row,
-        widgets: row.widgets.map((w) =>
-          w.id === widgetId ? { ...w, col_span: colSpan } : w
-        ),
-      }));
-      return {
-        ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
-      };
-    }),
-
-  moveWidget: (activeId, overId) =>
-    set((s) => {
-      const history = pushHistory(s);
-      const rows = s.form.layout.rows;
-
-      let activeWidget: Widget | null = null;
-      let activeRowIdx = -1;
-      let activeWidgetIdx = -1;
-
-      for (let ri = 0; ri < rows.length; ri++) {
-        for (let wi = 0; wi < rows[ri].widgets.length; wi++) {
-          if (rows[ri].widgets[wi].id === activeId) {
-            activeWidget = rows[ri].widgets[wi];
-            activeRowIdx = ri;
-            activeWidgetIdx = wi;
-          }
-        }
-      }
-
-      if (!activeWidget) return s;
-
-      // Find over position
-      let overRowIdx = -1;
-      let overWidgetIdx = -1;
-      for (let ri = 0; ri < rows.length; ri++) {
-        if (rows[ri].id === overId) {
-          overRowIdx = ri;
-          overWidgetIdx = rows[ri].widgets.length;
-          break;
-        }
-        for (let wi = 0; wi < rows[ri].widgets.length; wi++) {
-          if (rows[ri].widgets[wi].id === overId) {
-            overRowIdx = ri;
-            overWidgetIdx = wi;
-            break;
-          }
-        }
-        if (overRowIdx >= 0) break;
-      }
-
-      if (overRowIdx < 0) return s;
-
-      const newRows = rows.map((r) => ({ ...r, widgets: [...r.widgets] }));
-
-      // Remove from old position
-      newRows[activeRowIdx].widgets.splice(activeWidgetIdx, 1);
-
-      // Adjust index if same row and removing shifted it
-      let insertIdx = overWidgetIdx;
-      if (activeRowIdx === overRowIdx && activeWidgetIdx < overWidgetIdx) {
-        insertIdx--;
-      }
-
-      // Insert at new position
-      newRows[overRowIdx].widgets.splice(insertIdx, 0, activeWidget);
-
-      // Remove empty rows
-      const filteredRows = newRows.filter((r) => r.widgets.length > 0);
-
-      return {
-        ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: filteredRows } },
-      };
-    }),
-
-  addRow: (index) =>
-    set((s) => {
-      const history = pushHistory(s);
-      const newRow: Row = { id: uuidv4(), widgets: [] };
-      const newRows = [...s.form.layout.rows];
-      if (index !== undefined) {
-        newRows.splice(index, 0, newRow);
-      } else {
-        newRows.push(newRow);
-      }
-      return {
-        ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
-      };
-    }),
-
-  removeRow: (rowId) =>
-    set((s) => {
-      const history = pushHistory(s);
       return {
         ...history,
         form: {
           ...s.form,
-          layout: { ...s.form.layout, rows: s.form.layout.rows.filter((r) => r.id !== rowId) },
+          layout: {
+            ...s.form.layout,
+            widgets: s.form.layout.widgets.map((w) =>
+              w.id === widgetId ? { ...w, props: { ...w.props, ...props } } : w
+            ),
+          },
         },
       };
     }),
 
-  moveRow: (fromIndex, toIndex) =>
+  moveWidget: (widgetId, x, y) =>
+    set((s) => {
+      const snap = s.gridSnap;
+      return {
+        form: {
+          ...s.form,
+          layout: {
+            ...s.form.layout,
+            widgets: s.form.layout.widgets.map((w) =>
+              w.id === widgetId
+                ? { ...w, x: snapToGrid(Math.max(0, x), snap), y: snapToGrid(Math.max(0, y), snap) }
+                : w
+            ),
+          },
+        },
+      };
+    }),
+
+  resizeWidget: (widgetId, w, h) =>
+    set((s) => {
+      const snap = s.gridSnap;
+      return {
+        form: {
+          ...s.form,
+          layout: {
+            ...s.form.layout,
+            widgets: s.form.layout.widgets.map((widget) =>
+              widget.id === widgetId
+                ? { ...widget, w: snapToGrid(Math.max(40, w), snap), h: snapToGrid(Math.max(20, h), snap) }
+                : widget
+            ),
+          },
+        },
+      };
+    }),
+
+  duplicateWidget: (widgetId) =>
     set((s) => {
       const history = pushHistory(s);
-      const newRows = [...s.form.layout.rows];
-      const [moved] = newRows.splice(fromIndex, 1);
-      newRows.splice(toIndex, 0, moved);
+      const original = s.form.layout.widgets.find((w) => w.id === widgetId);
+      if (!original) return s;
+
+      const clone: Widget = {
+        ...JSON.parse(JSON.stringify(original)),
+        id: uuidv4(),
+        x: original.x + 20,
+        y: original.y + 20,
+      };
+
       return {
         ...history,
-        form: { ...s.form, layout: { ...s.form.layout, rows: newRows } },
+        form: {
+          ...s.form,
+          layout: {
+            ...s.form.layout,
+            widgets: [...s.form.layout.widgets, clone],
+          },
+        },
+        selectedWidgetId: clone.id,
       };
     }),
 
@@ -281,6 +253,14 @@ export const useFormStore = create<FormBuilderState>((set) => ({
         selectedWidgetId: null,
       };
     }),
+
+  setCanvasSize: (width, height) =>
+    set((s) => ({
+      form: {
+        ...s.form,
+        layout: { ...s.form.layout, canvasWidth: width, canvasHeight: height },
+      },
+    })),
 
   resetForm: () => set({ form: createEmptyForm(), undoStack: [], redoStack: [], selectedWidgetId: null }),
 }));

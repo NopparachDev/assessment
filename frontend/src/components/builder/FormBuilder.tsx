@@ -1,24 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { useCallback, useState, useEffect } from "react";
 import { useFormStore } from "@/lib/store";
 import { WidgetPalette } from "./WidgetPalette";
-import { Canvas } from "./Canvas";
+import { FreeformCanvas } from "./FreeformCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { Toolbar } from "./Toolbar";
-import { WidgetRenderer } from "@/components/widgets/WidgetRenderer";
-import { WIDGET_DEFAULTS } from "@/lib/types";
-import type { WidgetType, WidgetProps } from "@/lib/types";
 import { api } from "@/lib/api";
 
 interface FormBuilderProps {
@@ -26,49 +13,38 @@ interface FormBuilderProps {
 }
 
 export function FormBuilder({ formId }: FormBuilderProps) {
-  const { form, addWidget, moveWidget, previewMode } = useFormStore();
+  const { form, previewMode, removeWidget, selectedWidgetId } = useFormStore();
   const [saving, setSaving] = useState(false);
-  const [draggedType, setDraggedType] = useState<WidgetType | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        // Don't delete when typing in inputs
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    if (active.data.current?.fromPalette) {
-      setDraggedType(active.data.current.type as WidgetType);
-    }
-  }, []);
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      setDraggedType(null);
-
-      if (!over) return;
-
-      // Dragging from palette → canvas
-      if (active.data.current?.fromPalette) {
-        const widgetType = active.data.current.type as WidgetType;
-        addWidget(widgetType);
-        return;
+        if (selectedWidgetId) {
+          removeWidget(selectedWidgetId);
+        }
       }
-
-      // Reordering within canvas
-      if (active.id !== over.id) {
-        moveWidget(active.id as string, over.id as string);
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          useFormStore.getState().redo();
+        } else {
+          useFormStore.getState().undo();
+        }
       }
-    },
-    [addWidget, moveWidget]
-  );
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedWidgetId, removeWidget]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const schemaData = {
-        layout: form.layout,
-      };
+      const schemaData = { layout: form.layout };
 
       if (formId) {
         await api.updateForm(formId, {
@@ -82,7 +58,6 @@ export function FormBuilder({ formId }: FormBuilderProps) {
           department: form.department || undefined,
           schema: schemaData,
         });
-        // Update URL without reload
         window.history.replaceState(null, "", `/builder/${created.id}`);
       }
     } catch (err) {
@@ -110,32 +85,13 @@ export function FormBuilder({ formId }: FormBuilderProps) {
   }, [form]);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex h-screen flex-col">
-        <Toolbar onSave={handleSave} onExport={handleExport} saving={saving} />
-        <div className="flex flex-1 overflow-hidden">
-          {!previewMode && <WidgetPalette />}
-          <Canvas />
-          {!previewMode && <PropertiesPanel />}
-        </div>
+    <div className="flex h-screen flex-col">
+      <Toolbar onSave={handleSave} onExport={handleExport} saving={saving} />
+      <div className="flex flex-1 overflow-hidden">
+        {!previewMode && <WidgetPalette />}
+        <FreeformCanvas />
+        {!previewMode && <PropertiesPanel />}
       </div>
-
-      {/* Drag overlay for palette items */}
-      <DragOverlay>
-        {draggedType && (
-          <div className="rounded-md border bg-card p-3 shadow-lg opacity-80 w-64">
-            <WidgetRenderer
-              type={draggedType}
-              props={WIDGET_DEFAULTS[draggedType] as WidgetProps}
-            />
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+    </div>
   );
 }

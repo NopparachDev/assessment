@@ -31,7 +31,7 @@ export default function BuilderPage() {
           created_by: data.created_by || undefined,
           created_at: data.created_at,
           updated_at: data.updated_at,
-          layout: layout as import("@/lib/types").FormLayout || { columns: 12, rows: [] },
+          layout: (layout as import("@/lib/types").FormLayout) || { canvasWidth: 794, canvasHeight: 1123, widgets: [] },
           tags: data.tags || undefined,
         });
       } catch (err) {
