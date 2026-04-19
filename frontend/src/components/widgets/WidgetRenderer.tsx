@@ -5,6 +5,7 @@ import { TextInputWidget } from "./TextInputWidget";
 import { NumberInputWidget } from "./NumberInputWidget";
 import { DropdownWidget } from "./DropdownWidget";
 import { RadioGroupWidget } from "./RadioGroupWidget";
+import { CheckboxWidget } from "./CheckboxWidget";
 import { CheckboxGroupWidget } from "./CheckboxGroupWidget";
 import { ScoreSliderWidget } from "./ScoreSliderWidget";
 import { DatePickerWidget } from "./DatePickerWidget";
@@ -18,6 +19,7 @@ const WIDGET_MAP: Record<WidgetType, React.ComponentType<{ props: WidgetProps; i
   NumberInput: NumberInputWidget,
   Dropdown: DropdownWidget,
   RadioGroup: RadioGroupWidget,
+  Checkbox: CheckboxWidget,
   CheckboxGroup: CheckboxGroupWidget,
   ScoreSlider: ScoreSliderWidget,
   DatePicker: DatePickerWidget,

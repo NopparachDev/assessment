@@ -7,6 +7,7 @@ export type WidgetType =
   | "ScoreSlider"
   | "DatePicker"
   | "Label"
+  | "Checkbox"
   | "ScoringTable"
   | "PatientInfo"
   | "ScoreSummary";
@@ -97,6 +98,7 @@ export const WIDGET_SIZE_DEFAULTS: Record<WidgetType, { w: number; h: number }> 
   Dropdown: { w: 250, h: 60 },
   RadioGroup: { w: 250, h: 80 },
   CheckboxGroup: { w: 250, h: 80 },
+  Checkbox: { w: 180, h: 32 },
   ScoreSlider: { w: 300, h: 80 },
   DatePicker: { w: 200, h: 60 },
   Label: { w: 200, h: 32 },
@@ -136,6 +138,7 @@ export const WIDGET_DEFAULTS: Record<WidgetType, Partial<WidgetProps>> = {
     ],
     required: false,
   },
+  Checkbox: { label: "Checkbox", text: "Check this item" },
   CheckboxGroup: {
     label: "Checkbox Group",
     options: [
