@@ -357,10 +357,11 @@ export function PropertiesPanel() {
   const hasOptions = ["Dropdown", "RadioGroup", "CheckboxGroup"].includes(type);
   const hasMinMax = ["NumberInput", "ScoreSlider"].includes(type);
   const isLabel = type === "Label";
-  const isBasicWidget = !["ScoringTable", "PatientInfo", "ScoreSummary", "Label"].includes(type);
+  const isBasicWidget = !["ScoringTable", "PatientInfo", "ScoreSummary", "Label", "Rectangle", "Line"].includes(type);
   const isScoringTable = type === "ScoringTable";
   const isPatientInfo = type === "PatientInfo";
   const isScoreSummary = type === "ScoreSummary";
+  const isShape = type === "Rectangle" || type === "Line";
 
   return (
     <div className="w-72 shrink-0 border-l bg-muted/30 p-4 overflow-y-auto">
@@ -490,6 +491,122 @@ export function PropertiesPanel() {
                   <SelectItem value="body">Body</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </>
+        )}
+
+        {/* ── Rectangle / Line properties ── */}
+        {isShape && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <Label className="text-xs font-medium">Style</Label>
+
+              {/* Border Width */}
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Border Width (px)</Label>
+                <Input
+                  type="number"
+                  value={props.borderWidth ?? 1}
+                  min={1}
+                  max={20}
+                  onChange={(e) => updateWidgetProps(selectedWidget.id, { borderWidth: Number(e.target.value) })}
+                  className="h-7 text-xs"
+                />
+              </div>
+
+              {/* Border Color */}
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Border Color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={props.borderColor || "#000000"}
+                    onChange={(e) => updateWidgetProps(selectedWidget.id, { borderColor: e.target.value })}
+                    className="h-7 w-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={props.borderColor || "#000000"}
+                    onChange={(e) => updateWidgetProps(selectedWidget.id, { borderColor: e.target.value })}
+                    className="h-7 text-xs flex-1"
+                  />
+                </div>
+              </div>
+
+              {/* Border Style */}
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Border Style</Label>
+                <Select
+                  value={props.borderStyle || "solid"}
+                  onValueChange={(val) =>
+                    updateWidgetProps(selectedWidget.id, { borderStyle: val as "solid" | "dashed" | "dotted" })
+                  }
+                >
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solid">Solid ───</SelectItem>
+                    <SelectItem value="dashed">Dashed - - -</SelectItem>
+                    <SelectItem value="dotted">Dotted · · ·</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Rectangle-only: border radius + fill */}
+              {type === "Rectangle" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Border Radius (px)</Label>
+                    <Input
+                      type="number"
+                      value={props.borderRadius ?? 0}
+                      min={0}
+                      max={100}
+                      onChange={(e) => updateWidgetProps(selectedWidget.id, { borderRadius: Number(e.target.value) })}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Fill Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={props.fillColor === "transparent" ? "#ffffff" : props.fillColor || "#ffffff"}
+                        onChange={(e) => updateWidgetProps(selectedWidget.id, { fillColor: e.target.value })}
+                        className="h-7 w-10 rounded border cursor-pointer"
+                      />
+                      <Input
+                        value={props.fillColor || "transparent"}
+                        onChange={(e) => updateWidgetProps(selectedWidget.id, { fillColor: e.target.value })}
+                        className="h-7 text-xs flex-1"
+                        placeholder="transparent"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Line-only: direction */}
+              {type === "Line" && (
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Direction</Label>
+                  <Select
+                    value={props.lineDirection || "horizontal"}
+                    onValueChange={(val) =>
+                      updateWidgetProps(selectedWidget.id, { lineDirection: val as "horizontal" | "vertical" })
+                    }
+                  >
+                    <SelectTrigger className="h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="horizontal">Horizontal ─</SelectItem>
+                      <SelectItem value="vertical">Vertical │</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </>
         )}

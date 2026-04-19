@@ -16,6 +16,8 @@ import {
   Table2,
   User,
   BarChart3,
+  RectangleHorizontal,
+  Minus,
 } from "lucide-react";
 
 interface WidgetGroup {
@@ -30,6 +32,13 @@ const WIDGET_GROUPS: WidgetGroup[] = [
       { type: "ScoringTable", label: "Scoring Table", icon: <Table2 className="h-4 w-4" /> },
       { type: "PatientInfo", label: "Patient Info", icon: <User className="h-4 w-4" /> },
       { type: "ScoreSummary", label: "Score Summary", icon: <BarChart3 className="h-4 w-4" /> },
+    ],
+  },
+  {
+    title: "Drawing",
+    items: [
+      { type: "Rectangle", label: "Rectangle", icon: <RectangleHorizontal className="h-4 w-4" /> },
+      { type: "Line", label: "Line", icon: <Minus className="h-4 w-4" /> },
     ],
   },
   {

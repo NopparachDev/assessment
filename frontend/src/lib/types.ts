@@ -8,6 +8,8 @@ export type WidgetType =
   | "DatePicker"
   | "Label"
   | "Checkbox"
+  | "Rectangle"
+  | "Line"
   | "ScoringTable"
   | "PatientInfo"
   | "ScoreSummary";
@@ -69,6 +71,13 @@ export interface WidgetProps {
   scoreRanges?: ScoreRange[];
   sourceWidgetId?: string;
   noteText?: string;
+  // Rectangle / Line
+  borderWidth?: number;
+  borderColor?: string;
+  borderStyle?: "solid" | "dashed" | "dotted";
+  borderRadius?: number;
+  fillColor?: string;
+  lineDirection?: "horizontal" | "vertical";
 }
 
 export interface Widget {
@@ -102,6 +111,8 @@ export const WIDGET_SIZE_DEFAULTS: Record<WidgetType, { w: number; h: number }> 
   ScoreSlider: { w: 300, h: 80 },
   DatePicker: { w: 200, h: 60 },
   Label: { w: 200, h: 32 },
+  Rectangle: { w: 400, h: 200 },
+  Line: { w: 500, h: 4 },
   ScoringTable: { w: 700, h: 250 },
   PatientInfo: { w: 700, h: 80 },
   ScoreSummary: { w: 400, h: 150 },
@@ -139,6 +150,21 @@ export const WIDGET_DEFAULTS: Record<WidgetType, Partial<WidgetProps>> = {
     required: false,
   },
   Checkbox: { label: "Checkbox", text: "Check this item" },
+  Rectangle: {
+    label: "Rectangle",
+    borderWidth: 1,
+    borderColor: "#000000",
+    borderStyle: "solid",
+    borderRadius: 0,
+    fillColor: "transparent",
+  },
+  Line: {
+    label: "Line",
+    borderWidth: 1,
+    borderColor: "#000000",
+    borderStyle: "solid",
+    lineDirection: "horizontal",
+  },
   CheckboxGroup: {
     label: "Checkbox Group",
     options: [

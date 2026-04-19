@@ -10,6 +10,8 @@ import { CheckboxGroupWidget } from "./CheckboxGroupWidget";
 import { ScoreSliderWidget } from "./ScoreSliderWidget";
 import { DatePickerWidget } from "./DatePickerWidget";
 import { LabelWidget } from "./LabelWidget";
+import { RectangleWidget } from "./RectangleWidget";
+import { LineWidget } from "./LineWidget";
 import { ScoringTableWidget } from "./ScoringTableWidget";
 import { PatientInfoWidget } from "./PatientInfoWidget";
 import { ScoreSummaryWidget } from "./ScoreSummaryWidget";
@@ -24,6 +26,8 @@ const WIDGET_MAP: Record<WidgetType, React.ComponentType<{ props: WidgetProps; i
   ScoreSlider: ScoreSliderWidget,
   DatePicker: DatePickerWidget,
   Label: LabelWidget,
+  Rectangle: RectangleWidget,
+  Line: LineWidget,
   ScoringTable: ScoringTableWidget,
   PatientInfo: PatientInfoWidget,
   ScoreSummary: ScoreSummaryWidget,
