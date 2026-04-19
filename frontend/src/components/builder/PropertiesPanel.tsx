@@ -166,8 +166,8 @@ function ScoringRowsEditor({
           <Textarea
             value={row.question}
             onChange={(e) => update(i, e.target.value)}
-            className="text-xs min-h-[32px] resize-none"
-            rows={1}
+            className="text-xs min-h-[48px] resize-y"
+            rows={2}
           />
           <Button
             variant="ghost"

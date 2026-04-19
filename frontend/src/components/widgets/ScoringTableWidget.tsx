@@ -64,7 +64,7 @@ export function ScoringTableWidget({
           <tbody>
             {rows.map((row, ri) => (
               <tr key={row.id} className={ri % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                <td className="border border-border px-2 py-1.5 text-left">
+                <td className="border border-border px-2 py-1.5 text-left whitespace-pre-wrap">
                   {ri + 1}. {row.question}
                 </td>
                 {columns.map((col, ci) => (
