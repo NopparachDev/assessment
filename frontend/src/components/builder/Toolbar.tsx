@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Undo2, Redo2, Eye, EyeOff, Save, Download } from "lucide-react";
-import { AiScanDialog } from "./AiScanDialog";
+// import { AiScanDialog } from "./AiScanDialog";
 
 interface ToolbarProps {
   onSave?: () => void;
@@ -79,10 +79,9 @@ export function Toolbar({ onSave, onExport, saving }: ToolbarProps) {
         {previewMode ? "Edit" : "Preview"}
       </Button>
 
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* AI Scan */}
-      <AiScanDialog />
+      {/* AI Scan — disabled for now */}
+      {/* <Separator orientation="vertical" className="h-6" /> */}
+      {/* <AiScanDialog /> */}
 
       <div className="flex-1" />
 
